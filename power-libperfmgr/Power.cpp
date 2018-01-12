@@ -135,6 +135,7 @@ Return<void> Power::powerHint(PowerHint_1_0 hint, int32_t data) {
             } else {
                 if (data) {
                     // Hint until canceled
+                    ATRACE_INT("launch_lock", 1);
                     mHintManager->DoHint("LAUNCH");
                     ALOGD("LAUNCH ON");
                 } else {
@@ -304,6 +305,7 @@ Return<void> Power::powerHintAsync_1_2(PowerHint_1_2 hint, int32_t data) {
             break;
         case PowerHint_1_2::CAMERA_LAUNCH:
             if (data > 0) {
+                ATRACE_INT("camera_launch_lock", 1);
                 mHintManager->DoHint("CAMERA_LAUNCH", std::chrono::milliseconds(data));
                 ALOGD("CAMERA LAUNCH ON: %d MS", data);
                 // boosts 2.5s for launching
@@ -317,6 +319,7 @@ Return<void> Power::powerHintAsync_1_2(PowerHint_1_2 hint, int32_t data) {
             break;
         case PowerHint_1_2::CAMERA_STREAMING:
             if (data > 0) {
+                ATRACE_INT("camera_streaming_lock", 1);
                 mHintManager->DoHint("CAMERA_STREAMING", std::chrono::milliseconds(data));
                 ALOGD("CAMERA STREAMING ON: %d MS", data);
             } else if (data == 0) {
@@ -328,6 +331,7 @@ Return<void> Power::powerHintAsync_1_2(PowerHint_1_2 hint, int32_t data) {
             break;
         case PowerHint_1_2::CAMERA_SHOT:
             if (data > 0) {
+                ATRACE_INT("camera_shot_lock", 1);
                 mHintManager->DoHint("CAMERA_SHOT", std::chrono::milliseconds(data));
                 ALOGD("CAMERA SHOT ON: %d MS", data);
             } else if (data == 0) {
