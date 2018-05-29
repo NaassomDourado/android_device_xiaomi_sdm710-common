@@ -200,15 +200,6 @@
       "ResetOnInit": true
     },
     {
-      "Name": "SchedFeatures",
-      "Path": "/sys/kernel/debug/sched_features",
-      "Values": [
-        "EAS_USE_NEED_IDLE",
-        "NO_EAS_USE_NEED_IDLE"
-      ],
-      "ResetOnInit": true
-    },
-    {
       "Name": "SchedBoost",
       "Path": "/proc/sys/kernel/sched_boost",
       "Values": [
@@ -499,13 +490,7 @@
       "PowerHint": "CAMERA_STREAMING",
       "Node": "CPUBigClusterMaxFreq",
       "Duration": 0,
-      "Value": "2246400"
-    },
-    {
-      "PowerHint": "CAMERA_STREAMING",
-      "Node": "SchedFeatures",
-      "Duration": 0,
-      "Value": "EAS_USE_NEED_IDLE"
+      "Value": "2092800"
     },
     {
       "PowerHint": "AUDIO_STREAMING",
