@@ -280,6 +280,13 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     netutils-wrapper-1.0
 
+# Power
+PRODUCT_PACKAGES += \
+    android.hardware.power@1.3-service.xiaomi_sdm845-libperfmgr
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/power/configs/powerhint.json:$(TARGET_COPY_OUT_VENDOR)/etc/powerhint.json
+
 # Protobuf
 PRODUCT_PACKAGES += \
     libprotobuf-cpp-full-vendorcompat \

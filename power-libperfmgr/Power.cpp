@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "android.hardware.power@1.2-service.xiaomi_sdm845-libperfmgr"
+#define ATRACE_TAG (ATRACE_TAG_POWER | ATRACE_TAG_HAL)
+#define LOG_TAG "android.hardware.power@1.3-service.xiaomi_sdm845-libperfmgr"
 
 #include <android-base/file.h>
 #include <android-base/logging.h>
@@ -34,7 +35,7 @@ extern struct stat_pair rpm_stat_map[];
 namespace android {
 namespace hardware {
 namespace power {
-namespace V1_2 {
+namespace V1_3 {
 namespace implementation {
 
 using ::android::hardware::power::V1_0::Feature;
@@ -51,30 +52,52 @@ Power::Power() :
         mInteractionHandler(mHintManager),
         mVRModeOn(false),
         mSustainedPerfModeOn(false),
-        mCameraStreamingModeOn(false) {
-    mInteractionHandler.Init();
+        mCameraStreamingModeOn(false),
+        mReady(false) {
 
-    std::string state = android::base::GetProperty(kPowerHalStateProp, "");
-    if (state == "CAMERA_STREAMING") {
-        ALOGI("Initialize with CAMERA_STREAMING on");
-        mHintManager->DoHint("CAMERA_STREAMING");
-        mCameraStreamingModeOn = true;
-    } else if (state ==  "SUSTAINED_PERFORMANCE") {
-        ALOGI("Initialize with SUSTAINED_PERFORMANCE on");
-        mHintManager->DoHint("SUSTAINED_PERFORMANCE");
-        mSustainedPerfModeOn = true;
-    } else if (state == "VR_MODE") {
-        ALOGI("Initialize with VR_MODE on");
-        mHintManager->DoHint("VR_MODE");
-        mVRModeOn = true;
-    } else if (state == "VR_SUSTAINED_PERFORMANCE") {
-        ALOGI("Initialize with SUSTAINED_PERFORMANCE and VR_MODE on");
-        mHintManager->DoHint("VR_SUSTAINED_PERFORMANCE");
-        mSustainedPerfModeOn = true;
-        mVRModeOn = true;
-    } else {
-        ALOGI("Initialize PowerHAL");
-    }
+    mInitThread =
+            std::thread([this](){
+                            android::base::WaitForProperty(kPowerHalInitProp, "1");
+                            mHintManager = HintManager::GetFromJSON("/vendor/etc/powerhint.json");
+                            mInteractionHandler = std::make_unique<InteractionHandler>(mHintManager);
+                            mInteractionHandler->Init();
+                            std::string state = android::base::GetProperty(kPowerHalStateProp, "");
+                            if (state == "CAMERA_STREAMING") {
+                                ALOGI("Initialize with CAMERA_STREAMING on");
+                                mHintManager->DoHint("CAMERA_STREAMING");
+                                mCameraStreamingModeOn = true;
+                            } else if (state ==  "SUSTAINED_PERFORMANCE") {
+                                ALOGI("Initialize with SUSTAINED_PERFORMANCE on");
+                                mHintManager->DoHint("SUSTAINED_PERFORMANCE");
+                                mSustainedPerfModeOn = true;
+                            } else if (state == "VR_MODE") {
+                                ALOGI("Initialize with VR_MODE on");
+                                mHintManager->DoHint("VR_MODE");
+                                mVRModeOn = true;
+                            } else if (state == "VR_SUSTAINED_PERFORMANCE") {
+                                ALOGI("Initialize with SUSTAINED_PERFORMANCE and VR_MODE on");
+                                mHintManager->DoHint("VR_SUSTAINED_PERFORMANCE");
+                                mSustainedPerfModeOn = true;
+                                mVRModeOn = true;
+                            } else {
+                                ALOGI("Initialize PowerHAL");
+                            }
+
+                            state = android::base::GetProperty(kPowerHalAudioProp, "");
+                            if (state == "LOW_LATENCY") {
+                                ALOGI("Initialize with AUDIO_LOW_LATENCY on");
+                                mHintManager->DoHint("AUDIO_LOW_LATENCY");
+                            }
+
+                            state = android::base::GetProperty(kPowerHalRenderingProp, "");
+                            if (state == "EXPENSIVE_RENDERING") {
+                                ALOGI("Initialize with EXPENSIVE_RENDERING on");
+                                mHintManager->DoHint("EXPENSIVE_RENDERING");
+                            }
+                            // Now start to take powerhint
+                            mReady.store(true);
+                        });
+    mInitThread.detach();
 
     state = android::base::GetProperty(kPowerHalAudioProp, "");
     if (state == "LOW_LATENCY") {
@@ -373,6 +396,39 @@ Return<void> Power::powerHintAsync_1_2(PowerHint_1_2 hint, int32_t data) {
     return Void();
 }
 
+// Methods from ::android::hardware::power::V1_3::IPower follow.
+Return<void> Power::powerHintAsync_1_3(PowerHint_1_3 hint, int32_t data) {
+    if (!isSupportedGovernor() || !mReady) {
+        return Void();
+    }
+
+    if (hint == PowerHint_1_3::EXPENSIVE_RENDERING) {
+        if (mVRModeOn || mSustainedPerfModeOn) {
+            ALOGV("%s: ignoring due to other active perf hints", __func__);
+            return Void();
+        }
+
+        if (data > 0) {
+            ATRACE_INT("EXPENSIVE_RENDERING", 1);
+            mHintManager->DoHint("EXPENSIVE_RENDERING");
+            if (!android::base::SetProperty(kPowerHalRenderingProp, "EXPENSIVE_RENDERING")) {
+                ALOGE("%s: could not set powerHAL rendering property to EXPENSIVE_RENDERING",
+                      __func__);
+            }
+        } else {
+            ATRACE_INT("EXPENSIVE_RENDERING", 0);
+            mHintManager->EndHint("EXPENSIVE_RENDERING");
+            if (!android::base::SetProperty(kPowerHalRenderingProp, "")) {
+                ALOGE("%s: could not clear powerHAL rendering property", __func__);
+            }
+        }
+    } else {
+        return powerHintAsync_1_2(static_cast<PowerHint_1_2>(hint), data);
+    }
+
+    return Void();
+}
+
 constexpr const char* boolToString(bool b) {
     return b ? "true" : "false";
 }
@@ -400,7 +456,7 @@ Return<void> Power::debug(const hidl_handle& handle, const hidl_vec<hidl_string>
 }
 
 }  // namespace implementation
-}  // namespace V1_2
+}  // namespace V1_3
 }  // namespace power
 }  // namespace hardware
 }  // namespace android
