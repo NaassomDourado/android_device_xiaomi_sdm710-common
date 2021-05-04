@@ -202,9 +202,6 @@ PRODUCT_PACKAGES += \
     android.hardware.health@2.1-impl.recovery \
     android.hardware.health@2.1-service
 
-PRODUCT_PACKAGES += \
-    libsuspend
-
 # HIDL
 PRODUCT_PACKAGES += \
     android.hidl.base@1.0 \
