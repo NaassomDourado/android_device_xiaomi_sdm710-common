@@ -38,9 +38,6 @@
 
 #define FOD_UI_PATH "/sys/devices/platform/soc/soc:qcom,dsi-display-primary/fod_ui"
 
-#define DIMLAYER_HBM_PATH "/sys/devices/platform/soc/soc:qcom,dsi-display-primary/dimlayer_hbm"
-#define DIMLAYER_ON 1
-#define DIMLAYER_OFF 0
 namespace {
 
 template <typename T>
@@ -137,13 +134,11 @@ Return<void> FingerprintInscreen::onRelease() {
 
 Return<void> FingerprintInscreen::onShowFODView() {
     set(FOD_STATUS_PATH, FOD_STATUS_ON);
-    set(DIMLAYER_HBM_PATH, DIMLAYER_ON);
     return Void();
 }
 
 Return<void> FingerprintInscreen::onHideFODView() {
     set(FOD_STATUS_PATH, FOD_STATUS_OFF);
-    set(DIMLAYER_HBM_PATH, DIMLAYER_OFF);
     return Void();
 }
 
@@ -191,11 +186,11 @@ Return<bool> FingerprintInscreen::shouldBoostBrightness() {
     return false;
 }
 
-Return<void> FingerprintInscreen::setCallback(const sp<IFingerprintInscreenCallback>& callback ){
-{
+Return<void> FingerprintInscreen::setCallback(const sp<IFingerprintInscreenCallback>& callback) {
+    {
         std::lock_guard<std::mutex> _lock(mCallbackLock);
         mCallback = callback;
-}
+    }
     return Void();
 }
 
